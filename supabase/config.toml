@@ -1,0 +1,24 @@
+# Supabase CLI configuration for local development.
+# Keep secrets out of this file; use environment variables or GitHub Secrets.
+
+project_id = "kumi-brain-sql"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public", "kumi_core"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+
+[storage]
+enabled = true
