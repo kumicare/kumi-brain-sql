@@ -31,6 +31,23 @@ Stores family members that Kumi Brain can answer questions about. Members can be
 
 None yet.
 
+## Functions
+
+### `kumi_core.list_family_members()`
+
+Stable RPC function behind the first Kumi tool contract, `list_family_members`.
+
+Returns family member summary fields ordered by `name`:
+
+- `id`
+- `name`
+- `member_type`
+- `birthday`
+- `gender`
+- `description`
+
+See [tools.md](tools.md) for the agent-facing contract.
+
 ## Sensitive Data
 
 To be defined.
