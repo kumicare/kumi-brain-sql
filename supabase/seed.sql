@@ -3,6 +3,8 @@
 
 insert into kumi_core.kumi_family_member (
   id,
+  household_id,
+  role,
   name,
   birthday,
   member_type,
@@ -12,6 +14,8 @@ insert into kumi_core.kumi_family_member (
 values
   (
     '00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000100',
+    'member',
     'kumi',
     null,
     1,
@@ -20,6 +24,8 @@ values
   ),
   (
     '00000000-0000-4000-8000-000000000002',
+    '00000000-0000-4000-8000-000000000100',
+    'member',
     'bally',
     date '2021-01-27',
     1,
@@ -28,6 +34,8 @@ values
   ),
   (
     '00000000-0000-4000-8000-000000000003',
+    '00000000-0000-4000-8000-000000000100',
+    'member',
     'pica',
     date '2021-01-27',
     1,
@@ -37,6 +45,8 @@ values
 on conflict (id) do update
 set
   name = excluded.name,
+  household_id = excluded.household_id,
+  role = excluded.role,
   birthday = excluded.birthday,
   member_type = excluded.member_type,
   gender = excluded.gender,

@@ -1,29 +1,34 @@
-# Row Level Security Notes
+# Phase 1.1 Authorization and RLS
 
-This document describes the current Supabase RLS posture for Kumi Brain.
+Anonymous access is removed before real family data is inserted.
 
-## Roles
+## Credential boundary
 
-- `anon`: Read-only access to `kumi_core.kumi_family_member` while the dataset contains non-sensitive demo records only.
-- `authenticated`: Read-only access to `kumi_core.kumi_family_member` while the dataset contains non-sensitive demo records only.
-- `service_role`: Granted table access for backend/server-side use. It bypasses RLS and must not be exposed to clients or agents.
+Hermes signs in as one dedicated Supabase Auth user using the project
+publishable key. Every RPC requires its `auth.uid()` to be active in
+`kumi_core.integration_identity`. The Hermes plugin never receives a
+service-role credential.
 
-## Policies
+## Grants
 
-### `kumi_core.kumi_family_member`
+- `anon`: no `kumi_core` schema usage, table access, or RPC execution.
+- `authenticated`: schema usage and execute only on the six named public RPCs.
+- Tables: RLS enabled, with no direct client policies. `authenticated` has no
+  direct table privileges.
+- Helper functions: execution revoked from `public`, `anon`, and
+  `authenticated`.
+- Public RPCs: `SECURITY DEFINER`, fixed `search_path`, explicit integration,
+  actor, household, and conversation checks.
 
-Policy: `kumi_family_member_read_all`
+## Domain authorization
 
-Allows `anon` and `authenticated` roles to select all rows. This is intentionally permissive only while the table contains non-sensitive demo data.
+- List: any active household actor; groups must be explicitly approved.
+- Create: any active household actor.
+- Assign unassigned: creator or admin.
+- Reassign assigned: admin only.
+- Claim unassigned: any active household actor for themselves.
+- Complete: assignee, creator when unassigned, or admin.
+- Delete/archive: unavailable.
 
-Before real family data is added, replace this policy with family-scoped access and remove any anonymous read path.
-
-## Tool RPCs
-
-### `kumi_core.list_family_members()`
-
-The first stable Kumi tool contract is exposed as a `security invoker` RPC function. It inherits the caller's row access rather than bypassing RLS.
-
-## Service Access
-
-Do not put the Supabase service role key in OpenClaw. While only demo data exists, use the project URL plus anon/publishable key through the Supabase Data API. Before real family data is added, move the tool call behind authenticated access or a controlled backend boundary.
+Every mutation is transactional and appends one structural audit event.
+Operation-key replay is checked before version/state checks.

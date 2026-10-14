@@ -1,60 +1,33 @@
-# Kumi Tool Contracts
+# Kumi Tool and RPC Contracts
 
-Agent-facing tools use stable business names. Their implementation may change over time, but agents should not need to know whether a tool is currently backed by Supabase RPC, Supabase Edge Functions, or a future `kumi-api` service.
+Agent-facing names are stable even if the backend later moves behind an API.
 
-## `list_family_members`
+| Tool / RPC | Domain input | Result |
+| --- | --- | --- |
+| `list_family_members` | none | active household member IDs, names, types, roles |
+| `create_family_task` | title, optional exact assignee, optional ISO due date | created task |
+| `list_family_tasks` | optional scope/status/limit | ordered task list |
+| `assign_family_task` | task UUID, exact assignee, expected version | updated task or conflict |
+| `claim_family_task` | task UUID, expected version | updated task or conflict |
+| `complete_family_task` | task UUID, expected version | completed task or conflict |
 
-Lists family member summaries known to Kumi Brain.
-
-### Agent-facing contract
+Hermes adds provider, verified user/chat context, operation key, and payload
+hash outside model arguments. RPCs return one JSON envelope:
 
 ```json
-{
-  "name": "list_family_members",
-  "description": "List family member summaries known to Kumi Brain.",
-  "input": {}
-}
+{"ok": true, "data": {}}
 ```
 
-### Output
+or:
 
-Returns an array of family member summary objects ordered by `name`:
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Stable row identifier. |
-| `name` | `text` | Display name. |
-| `member_type` | `smallint` | Code: `0=human`, `1=pets`, `2=relative`. |
-| `birthday` | `date \| null` | Calendar birthday when known. |
-| `gender` | `smallint \| null` | Code: `0=male`, `1=female`. |
-| `description` | `text \| null` | Short free-form summary. |
-
-### Phase 1 implementation
-
-Supabase RPC function:
-
-```sql
-kumi_core.list_family_members()
+```json
+{"ok": false, "error": {"code": "conflict", "message": "...", "latest": {}}}
 ```
 
-Example hosted API request:
+Stable expected codes are `forbidden`, `not_found`, `invalid_input`,
+`conflict`, and `replay_mismatch`. Transport/unexpected failures are redacted
+and mapped to `upstream_unavailable` by the plugin.
 
-```bash
-curl -X POST \
-  'https://uahzamhpbbzintsalqgg.supabase.co/rest/v1/rpc/list_family_members' \
-  -H 'apikey: <anon-or-publishable-key>' \
-  -H 'Authorization: Bearer <anon-or-user-jwt>' \
-  -H 'Content-Profile: kumi_core'
-```
-
-Live verification on 2026-05-16 returned the current seed rows in `name` order.
-
-### Replacement rule
-
-Future implementations may move behind Supabase Edge Functions or a dedicated Spring Boot / `kumi-api` backend, but the agent-facing tool contract should remain `list_family_members`.
-
-The implementation can change. The tool name and meaning should not.
-
-### Current data note
-
-The current repository seed data only contains demo records. That affects completeness of the data, not the stability of the tool contract.
+List defaults are `mine` in private chat and `household` in an approved group,
+status `open`, due date ascending with nulls last, then creation time, maximum
+50 rows.
